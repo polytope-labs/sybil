@@ -15,6 +15,10 @@ name = "sybil"
 [dependencies]
 structopt = "0.3.8"
 sybil-pow = { path = "../pow" }
+rand = { version = "0.8.4", features = ["std", "std_rng"] }
+sha3 = "0.9.1"
+codec = { version = "2.2.0", package = "parity-scale-codec" }
+futures = "0.3.16"
 
 sc-cli = { git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["wasmtime"] }
 sc-consensus-pow = { git = "https://github.com/paritytech/substrate.git", branch = "master" }

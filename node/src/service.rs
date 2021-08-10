@@ -1,17 +1,21 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+use codec::Encode;
+use rand::RngCore;
 use sc_client_api::ExecutorProvider;
+use sc_consensus::LongestChain;
+use sc_consensus_pow::PowBlockImport;
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_keystore::LocalKeystore;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager, TFullCallExecutor};
+use sc_service::{error::Error as ServiceError, Configuration, TFullCallExecutor, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sha3::Digest;
 use sp_consensus::CanAuthorWithNativeVersion;
+use sp_inherents::CreateInherentDataProviders;
+use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
-use sc_consensus_pow::PowBlockImport;
-use sc_consensus::LongestChain;
-use sp_inherents::CreateInherentDataProviders;
 
 // Our native executor instance.
 native_executor_instance!(
@@ -31,7 +35,13 @@ type SybilPowBlockImport = PowBlockImport<
 	LongestChain<FullBackend, Block>,
 	sybil_pow::SybilPow,
 	CanAuthorWithNativeVersion<TFullCallExecutor<Block, Executor>>,
-	Box<dyn CreateInherentDataProviders<Block, (), InherentDataProviders = sp_timestamp::InherentDataProvider>>,
+	Box<
+		dyn CreateInherentDataProviders<
+			Block,
+			(),
+			InherentDataProviders = sp_timestamp::InherentDataProvider,
+		>,
+	>,
 >;
 pub fn new_partial(
 	config: &Configuration,
@@ -75,8 +85,7 @@ pub fn new_partial(
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-	let can_author_with =
-		sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
+	let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
 	let block_import = sc_consensus_pow::PowBlockImport::new(
 		client.clone(),
@@ -87,7 +96,14 @@ pub fn new_partial(
 		Box::new(move |_, ()| async move {
 			let provider = sp_timestamp::InherentDataProvider::from_system_time();
 			Ok(provider)
-		}) as Box<dyn CreateInherentDataProviders<Block, (), InherentDataProviders = sp_timestamp::InherentDataProvider>>,
+		})
+			as Box<
+				dyn CreateInherentDataProviders<
+					Block,
+					(),
+					InherentDataProviders = sp_timestamp::InherentDataProvider,
+				>,
+			>,
 		can_author_with,
 	);
 
@@ -96,7 +112,7 @@ pub fn new_partial(
 		None,
 		sybil_pow::SybilPow,
 		&task_manager.spawn_essential_handle(),
-		None
+		None,
 	)?;
 
 	let transaction_pool = sc_transaction_pool::BasicPool::new_full(
@@ -106,7 +122,6 @@ pub fn new_partial(
 		task_manager.spawn_essential_handle(),
 		client.clone(),
 	);
-
 
 	Ok(sc_service::PartialComponents {
 		client,
@@ -151,7 +166,6 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			}
 		};
 	}
-
 
 	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
@@ -217,7 +231,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 		let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-		let (_worker, authorship_task) = sc_consensus_pow::start_mining_worker(
+		let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
 			Box::new(pow_block_import),
 			client.clone(),
 			select_chain,
@@ -235,9 +249,38 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			can_author_with,
 		);
 
-		task_manager.spawn_essential_handle()
-			.spawn("mining-task", authorship_task);
+		let worker = worker.clone();
+		thread::spawn(move || {
+			let worker = worker.clone();
+			let mut rand = rand::thread_rng();
 
+			loop {
+				let mut nonce = sp_core::H256::default();
+				rand.fill_bytes(&mut nonce[..]);
+
+				let mut worker = worker.lock();
+
+				if let Some(metadata) = worker.metadata() {
+					let compute = sybil_pow::Compute {
+						pre_hash: metadata.pre_hash,
+						difficulty: metadata.difficulty,
+						nonce,
+					};
+
+					let work = sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
+
+					let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
+
+					if !overflowed {
+						let seal = sybil_pow::SybilSeal { nonce, difficulty: metadata.difficulty };
+
+						futures::executor::block_on(worker.submit(seal.encode()));
+					}
+				}
+			}
+		});
+
+		task_manager.spawn_essential_handle().spawn("mining-task", authorship_task);
 	}
 
 	network_starter.start_network();

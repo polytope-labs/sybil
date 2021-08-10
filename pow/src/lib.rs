@@ -10,22 +10,22 @@ pub struct SybilPow;
 
 #[derive(Encode, Decode)]
 pub struct SybilSeal {
-	nonce: H256,
-	difficulty: U256,
+	pub nonce: H256,
+	pub difficulty: U256,
 }
 
 #[derive(Encode, Decode)]
-struct Compute<Hash> {
-	pre_hash: Hash,
-	nonce: H256,
-	difficulty: U256,
+pub struct Compute<Hash> {
+	pub pre_hash: Hash,
+	pub nonce: H256,
+	pub difficulty: U256,
 }
 
 impl<B: BlockT> PowAlgorithm<B> for SybilPow {
 	type Difficulty = U256;
 
 	fn difficulty(&self, _parent: B::Hash) -> Result<Self::Difficulty, Error<B>> {
-		unimplemented!()
+		Ok(U256::from(100_000))
 	}
 
 	fn verify(
@@ -47,9 +47,8 @@ impl<B: BlockT> PowAlgorithm<B> for SybilPow {
 			pre_hash: *pre_hash
 		};
 
-		let mut hasher = Sha3_256::new();
-		hasher.update(compute.encode());
-		let work = U256::from(&*hasher.finalize());
+		let hash = Sha3_256::digest(&compute.encode()[..]);
+		let work = U256::from(&*hash);
 
 		let (_, overflowed) = work.overflowing_mul(difficulty);
 

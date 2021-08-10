@@ -3,5 +3,5 @@ members = [
     "node",
     "runtime",
     "pow",
-#    "frame"
+    "frame/difficulty"
 ]

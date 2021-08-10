@@ -22,10 +22,11 @@ pallet-transaction-payment = { git  = "https://github.com/paritytech/substrate.g
 frame-support = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 frame-system = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 frame-executive = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+difficulty = { default-features = false, package = "frame-difficulty", path = "../frame/difficulty" }
 
 sp-api = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-block-builder = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
-sp-consensus-aura = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+sp-consensus-pow = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-core = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-inherents = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-offchain = { git  = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
@@ -55,7 +56,7 @@ std = [
 	"frame-support/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
-	"pallet-aura/std",
+	"difficulty/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
 	"pallet-randomness-collective-flip/std",
@@ -65,7 +66,7 @@ std = [
 	"pallet-transaction-payment/std",
 	"sp-api/std",
 	"sp-block-builder/std",
-	"sp-consensus-aura/std",
+	"sp-consensus-pow/std",
 	"sp-core/std",
 	"sp-inherents/std",
 	"sp-offchain/std",

@@ -1,5 +1,5 @@
 use sybil_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
+	AccountId, BalancesConfig, GenesisConfig, Signature, SudoConfig, DifficultyConfig,
 	SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -140,11 +140,8 @@ fn testnet_genesis(
 			// Configure endowed accounts with initial balance of 1 << 60.
 			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
 		},
-		aura: AuraConfig {
-			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
-		},
-		grandpa: GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
+		difficulty: DifficultyConfig {
+			difficulty: 1_000_000.into()
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.

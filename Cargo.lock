@@ -1596,6 +1596,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "frame-difficulty"
+version = "3.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "frame-executive"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#0dfb48cbbf4a6589e1441c2ec81774dc3d1348ff"
@@ -7136,8 +7150,11 @@ version = "1.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
+ "futures 0.3.16",
  "jsonrpc-core",
  "pallet-transaction-payment-rpc",
+ "parity-scale-codec",
+ "rand 0.8.4",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -7153,6 +7170,7 @@ dependencies = [
  "sc-telemetry",
  "sc-transaction-pool",
  "sc-transaction-pool-api",
+ "sha3",
  "sp-api",
  "sp-block-builder",
  "sp-blockchain",
@@ -7187,6 +7205,7 @@ name = "sybil-runtime"
 version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
+ "frame-difficulty",
  "frame-executive",
  "frame-support",
  "frame-system",
@@ -7204,7 +7223,7 @@ dependencies = [
  "parity-scale-codec",
  "sp-api",
  "sp-block-builder",
- "sp-consensus-aura",
+ "sp-consensus-pow",
  "sp-core",
  "sp-inherents",
  "sp-offchain",

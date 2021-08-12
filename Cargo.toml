@@ -3,5 +3,6 @@ members = [
     "node",
     "runtime",
     "pow",
-    "frame/difficulty"
+    "frame/difficulty",
+	"frame/rewards"
 ]

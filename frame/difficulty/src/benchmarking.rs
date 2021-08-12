@@ -8,12 +8,11 @@ use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_call
 use frame_system::RawOrigin;
 
 benchmarks! {
-	do_something {
+	set_difficulty {
 		let s in 0 .. 100;
-		let caller: T::AccountId = whitelisted_caller();
-	}: _(RawOrigin::Signed(caller), s)
+	}: _(RawOrigin::Root, s)
 	verify {
-		assert_eq!(Something::<T>::get(), Some(s));
+		assert_eq!(Difficulty::<T>::get(), Some(s));
 	}
 }
 

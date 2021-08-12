@@ -339,7 +339,7 @@ impl_runtime_apis! {
 
 	impl sp_consensus_pow::DifficultyApi<Block, sp_core::U256> for Runtime {
 		fn difficulty() -> sp_core::U256 {
-			Difficulty::difficulty().unwrap()
+			Difficulty::runtime_difficulty().unwrap()
 		}
 	}
 

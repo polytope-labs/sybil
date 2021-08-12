@@ -1,7 +1,6 @@
 [package]
 name = "sybil-node"
 version = "1.0.0"
-authors = ["Polytope Labs"]
 edition = "2018"
 license = "Unlicense"
 

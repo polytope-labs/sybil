@@ -2,12 +2,14 @@
 name = "sybil-pow"
 version = "0.1.0"
 edition = "2018"
+authors = ["Polytope Labs"]
 
 [dependencies]
 codec = { version = "2.2.0", package = "parity-scale-codec" }
-sc-consensus-pow = { git  = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-consensus-pow = { git  = "https://github.com/paritytech/substrate.git", branch = "master" }
+sc-consensus-pow = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-consensus-pow = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-api = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
-sp-runtime = { git  = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-core = { git  = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sha3 = "0.9.1"

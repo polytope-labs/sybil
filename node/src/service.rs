@@ -33,7 +33,7 @@ type SybilPowBlockImport = PowBlockImport<
 	Arc<FullClient>,
 	FullClient,
 	LongestChain<FullBackend, Block>,
-	sybil_pow::SybilPow,
+	sybil_pow::SybilPow<FullClient>,
 	CanAuthorWithNativeVersion<TFullCallExecutor<Block, Executor>>,
 	Box<
 		dyn CreateInherentDataProviders<
@@ -90,7 +90,7 @@ pub fn new_partial(
 	let block_import = sc_consensus_pow::PowBlockImport::new(
 		client.clone(),
 		client.clone(),
-		sybil_pow::SybilPow,
+		sybil_pow::SybilPow::new(client.clone()),
 		0,
 		select_chain.clone(),
 		Box::new(move |_, ()| async move {
@@ -110,7 +110,7 @@ pub fn new_partial(
 	let import_queue = sc_consensus_pow::import_queue(
 		Box::new(block_import.clone()),
 		None,
-		sybil_pow::SybilPow,
+		sybil_pow::SybilPow::new(client.clone()),
 		&task_manager.spawn_essential_handle(),
 		None,
 	)?;
@@ -235,7 +235,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			Box::new(pow_block_import),
 			client.clone(),
 			select_chain,
-			sybil_pow::SybilPow,
+			sybil_pow::SybilPow::new(client.clone()),
 			proposer_factory,
 			network.clone(),
 			network.clone(),

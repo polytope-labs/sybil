@@ -16,6 +16,7 @@ use sp_inherents::CreateInherentDataProviders;
 use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
+use sp_runtime::{MultiSigner, traits::IdentifyAccount};
 
 // Our native executor instance.
 native_executor_instance!(
@@ -231,6 +232,10 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 		let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
+		let address = MultiSigner::from(sp_keyring::Sr25519Keyring::Alice.public())
+			.into_account()
+			.encode();
+
 		let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
 			Box::new(pow_block_import),
 			client.clone(),
@@ -239,7 +244,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			proposer_factory,
 			network.clone(),
 			network.clone(),
-			None,
+			Some(address),
 			move |_, ()| async move {
 				let provider = sp_timestamp::InherentDataProvider::from_system_time();
 				Ok(provider)

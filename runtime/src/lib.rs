@@ -6,9 +6,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use pallet_grandpa::{
-	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
-};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -235,6 +232,16 @@ impl difficulty::Config for Runtime {
 	type Event = Event;
 }
 
+parameter_types! {
+	pub const BlockReward: Balance = 1_000_000_000;
+}
+
+impl rewards::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type Reward = BlockReward;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -248,7 +255,8 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		Difficulty: difficulty::{Pallet, Call, Storage, Event<T>, Config}
+		Difficulty: difficulty::{Pallet, Call, Storage, Event<T>, Config},
+		Rewards: rewards::{Pallet, Event<T>}
 	}
 );
 

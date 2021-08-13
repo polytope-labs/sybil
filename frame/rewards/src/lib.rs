@@ -1,9 +1,11 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 pub use pallet::*;
 
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, Hooks, traits::Currency};
+	use frame_support::{pallet_prelude::*, traits::Currency};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::DigestItem;
 	use sp_consensus_pow::POW_ENGINE_ID;
@@ -13,10 +15,10 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		// TODO: instead, store reward as a storage item.
-		type Reward: Get<<Self as balances::Config>::Balance>;
+		type Reward: Get<<Self::Currency as Currency<Self::AccountId>>::Balance>;
 
 		/// concrete currency implementataion
-		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
+		type Currency: Currency<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -34,21 +36,22 @@ pub mod pallet {
 
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks for Pallet<T> {
-		fn on_initialize(_n: BlockNumber) -> Weight {
-			let author_bytes = frame_system::Pallet::<T>::digest()
-				.unwrap()
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_initialize(_n: T::BlockNumber) -> Weight {
+			// get block author from pre-runtime digests
+			let account_id = frame_system::Pallet::<T>::digest()
 				.logs
 				.iter()
 				.find_map(|item| {
 					match item {
-						DigestItem::PreRuntime(POW_ENGINE_ID, author) => Some(author),
+						DigestItem::PreRuntime(POW_ENGINE_ID, author) => {
+							T::AccountId::decode(&mut &author[..]).ok()
+						},
 						_ => None,
 					}
-				});
-			let account_id = T::AccountId::decode(&mut &author_bytes[..])
+				})
 				.unwrap();
-			T::Currency::deposit_creating(account_id, T::Reward::get());
+			T::Currency::deposit_creating(&account_id, T::Reward::get());
 			Self::deposit_event(Event::AuthorRewarded(account_id));
 			0
 		}

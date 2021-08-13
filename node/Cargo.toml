@@ -3,6 +3,7 @@ name = "sybil-node"
 version = "1.0.0"
 edition = "2018"
 license = "Unlicense"
+authors = ["Polytope Labs"]
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -29,8 +30,6 @@ sc-keystore = { git = "https://github.com/paritytech/substrate.git", branch = "m
 sp-inherents = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sc-transaction-pool = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sc-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sc-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sc-finality-grandpa = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
@@ -39,8 +38,8 @@ sc-client-api = { git = "https://github.com/paritytech/substrate.git", branch = 
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-timestamp = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
-# These dependencies are used for the node template's RPCs
-jsonrpc-core = "15.1.0"
+# These dependencies are used for the node template"s RPCs
+jsonrpc-core = "18.0.0"
 sc-rpc = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-api = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sc-rpc-api = { git = "https://github.com/paritytech/substrate.git", branch = "master" }

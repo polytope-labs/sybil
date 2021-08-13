@@ -1,6 +1,7 @@
 [package]
-edition = '2018'
-name = 'frame-difficulty'
+edition = "2018"
+name = "frame-difficulty"
+authors = ["Polytope Labs"]
 version = "3.0.0"
 license = "Unlicense"
 readme = "README.md"
@@ -22,12 +23,12 @@ sp-io = { default-features = false, git = "https://github.com/paritytech/substra
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-	'codec/std',
-	'frame-support/std',
-	'frame-system/std',
-	'frame-benchmarking/std',
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"frame-benchmarking/std",
 	"sp-core/std"
 ]
 

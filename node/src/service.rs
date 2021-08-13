@@ -5,25 +5,32 @@ use rand::RngCore;
 use sc_client_api::ExecutorProvider;
 use sc_consensus::LongestChain;
 use sc_consensus_pow::PowBlockImport;
-use sc_executor::native_executor_instance;
-pub use sc_executor::NativeExecutor;
+use sc_executor::NativeElseWasmExecutor;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TFullCallExecutor, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sha3::Digest;
 use sp_consensus::CanAuthorWithNativeVersion;
 use sp_inherents::CreateInherentDataProviders;
+use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
 
-// Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	sybil_runtime::api::dispatch,
-	sybil_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+pub type Executor = sc_executor::NativeElseWasmExecutor<ExecutorDispatch>;
+pub struct ExecutorDispatch;
+
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		sybil_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		sybil_runtime::native_version()
+	}
+}
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
@@ -71,10 +78,17 @@ pub fn new_partial(
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 	let client = Arc::new(client);
 
@@ -231,23 +245,27 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 		let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-		let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
-			Box::new(pow_block_import),
-			client.clone(),
-			select_chain,
-			sybil_pow::SybilPow::new(client.clone()),
-			proposer_factory,
-			network.clone(),
-			network.clone(),
-			None,
-			move |_, ()| async move {
-				let provider = sp_timestamp::InherentDataProvider::from_system_time();
-				Ok(provider)
-			},
-			Duration::from_secs(10),
-			Duration::from_secs(10),
-			can_author_with,
-		);
+		let address = MultiSigner::from(sp_keyring::Sr25519Keyring::Alice.public())
+			.into_account()
+			.encode();
+
+			let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
+				Box::new(pow_block_import),
+				client.clone(),
+				select_chain,
+				sybil_pow::SybilPow::new(client.clone()),
+				proposer_factory,
+				network.clone(),
+				network.clone(),
+				Some(address),
+				move |_, ()| async move {
+					let provider = sp_timestamp::InherentDataProvider::from_system_time();
+					Ok(provider)
+				},
+				Duration::from_secs(10),
+				Duration::from_secs(10),
+				can_author_with,
+			);
 
 		let worker = worker.clone();
 		thread::spawn(move || {

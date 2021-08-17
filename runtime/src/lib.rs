@@ -232,15 +232,16 @@ impl difficulty::Config for Runtime {
 	type Event = Event;
 }
 
-parameter_types! {
-	pub const BlockReward: Balance = 1_000_000_000;
-}
+//
+// parameter_types! {
+// 	pub const BlockReward: Balance = 1_000_000_000;
+// }
 
 impl rewards::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type Reward = BlockReward;
 }
+
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(

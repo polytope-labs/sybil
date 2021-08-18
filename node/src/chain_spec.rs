@@ -131,7 +131,7 @@ fn testnet_genesis(
 			difficulty: 1_000_000.into()
 		},
 		rewards: RewardsConfig {
-			reward: 100u8
+			reward: 100u128
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.

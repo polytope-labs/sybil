@@ -48,7 +48,7 @@ pub mod pallet {
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
-				reward: <T::Currency as Currency<T::AccountId>>::Balance::min_value()
+				reward: <T::Currency as Currency<T::AccountId>>::Balance::from(100u8)
 			}
 		}
 	}

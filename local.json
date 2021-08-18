@@ -73,7 +73,7 @@
         "difficulty": "0xf4240"
       },
       "rewards": {
-        "reward": "0x00000064"
+        "reward": 100
       }
     }
   }

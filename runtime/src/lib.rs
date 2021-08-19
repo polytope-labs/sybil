@@ -232,10 +232,6 @@ impl difficulty::Config for Runtime {
 	type Event = Event;
 }
 
-//
-// parameter_types! {
-// 	pub const BlockReward: Balance = 1_000_000_000;
-// }
 
 impl rewards::Config for Runtime {
 	type Event = Event;

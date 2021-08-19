@@ -9,7 +9,6 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::DigestItem;
 	use sp_consensus_pow::POW_ENGINE_ID;
-	use frame_support::sp_runtime::traits::Bounded;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + balances::Config {
@@ -36,6 +35,7 @@ pub mod pallet {
 		/// A block author  has just been rewarded.
 		/// [AccountId]
 		AuthorRewarded(T::AccountId),
+		/// Block reward has just been updated
 		RewardUpdated(<T::Currency as Currency<T::AccountId>>::Balance)
 	}
 
@@ -92,7 +92,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[pallet::weight(1000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn set_reward(origin: OriginFor<T>, reward: <T::Currency as Currency<T::AccountId>>::Balance) -> DispatchResult {
 			// only root origins allowed
 			ensure_root(origin)?;

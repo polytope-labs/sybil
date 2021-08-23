@@ -1,5 +1,5 @@
 use sybil_runtime::{
-	AccountId, BalancesConfig, GenesisConfig, Signature, SudoConfig, DifficultyConfig,
+	AccountId, BalancesConfig, GenesisConfig, Signature, SudoConfig, DifficultyConfig, RewardsConfig,
 	SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -129,6 +129,9 @@ fn testnet_genesis(
 		},
 		difficulty: DifficultyConfig {
 			difficulty: 1_000_000.into()
+		},
+		rewards: RewardsConfig {
+			reward: 100u128
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.

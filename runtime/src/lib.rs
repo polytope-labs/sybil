@@ -84,7 +84,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 100,
+	spec_version: 101,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -232,15 +232,12 @@ impl difficulty::Config for Runtime {
 	type Event = Event;
 }
 
-parameter_types! {
-	pub const BlockReward: Balance = 1_000_000_000;
-}
 
 impl rewards::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type Reward = BlockReward;
 }
+
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -256,7 +253,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Difficulty: difficulty::{Pallet, Call, Storage, Event<T>, Config},
-		Rewards: rewards::{Pallet, Event<T>}
+		Rewards: rewards::{Pallet, Call, Storage, Event<T>, Config<T>}
 	}
 );
 

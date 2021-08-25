@@ -5,26 +5,33 @@ use rand::RngCore;
 use sc_client_api::ExecutorProvider;
 use sc_consensus::LongestChain;
 use sc_consensus_pow::PowBlockImport;
-use sc_executor::native_executor_instance;
-pub use sc_executor::NativeExecutor;
+use sc_executor::NativeElseWasmExecutor;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TFullCallExecutor, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sha3::Digest;
 use sp_consensus::CanAuthorWithNativeVersion;
 use sp_inherents::CreateInherentDataProviders;
+use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
-use sp_runtime::{MultiSigner, traits::IdentifyAccount};
+use tokio_stream::{wrappers::WatchStream, StreamExt};
 
-// Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	sybil_runtime::api::dispatch,
-	sybil_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+pub type Executor = sc_executor::NativeElseWasmExecutor<ExecutorDispatch>;
+pub struct ExecutorDispatch;
+
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		sybil_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		sybil_runtime::native_version()
+	}
+}
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
@@ -72,10 +79,17 @@ pub fn new_partial(
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 	let client = Arc::new(client);
 
@@ -236,7 +250,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			.into_account()
 			.encode();
 
-		let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
+		let (rx, authorship_task) = sc_consensus_pow::start_mining_worker(
 			Box::new(pow_block_import),
 			client.clone(),
 			select_chain,
@@ -250,40 +264,64 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 				Ok(provider)
 			},
 			Duration::from_secs(10),
-			Duration::from_secs(10),
 			can_author_with,
 		);
 
-		let worker = worker.clone();
-		thread::spawn(move || {
-			let worker = worker.clone();
-			let mut rand = rand::thread_rng();
+		for _ in 0..4 {
+			let rx_clone = rx.clone();
+			thread::spawn(move || {
+				let mut stream = WatchStream::new(rx_clone);
+				let mut item = futures::executor::block_on(stream.next());
 
-			loop {
-				let mut nonce = sp_core::H256::default();
-				rand.fill_bytes(&mut nonce[..]);
+				loop {
+					// this future tries to find a seal.
+					let item_clone = item.clone();
+					let mut rand = rand::thread_rng();
 
-				let mut worker = worker.lock();
+					let seal = async move {
+						if let Some(Some(build)) = item_clone {
+							loop {
+								let mut nonce = sp_core::H256::default();
+								rand.fill_bytes(&mut nonce[..]);
+								let metadata = build.metadata.clone();
 
-				if let Some(metadata) = worker.metadata() {
-					let compute = sybil_pow::Compute {
-						pre_hash: metadata.pre_hash,
-						difficulty: metadata.difficulty,
-						nonce,
+								let compute = sybil_pow::Compute {
+									pre_hash: metadata.pre_hash,
+									difficulty: metadata.difficulty,
+									nonce,
+								};
+
+								let work = sp_core::U256::from(&*sha3::Sha3_256::digest(
+									&compute.encode()[..],
+								));
+
+								let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
+
+								if !overflowed {
+									let seal = sybil_pow::SybilSeal {
+										nonce,
+										difficulty: metadata.difficulty,
+									};
+
+									let _res = build.sender.send(seal.encode()).await;
+									break;
+								}
+							}
+						}
 					};
 
-					let work = sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
-
-					let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
-
-					if !overflowed {
-						let seal = sybil_pow::SybilSeal { nonce, difficulty: metadata.difficulty };
-
-						futures::executor::block_on(worker.submit(seal.encode()));
+					match futures::executor::block_on(futures::future::select(
+						Box::pin(stream.next()),
+						Box::pin(seal),
+					)) {
+						futures::future::Either::Left((new_item, _)) => {
+							item = new_item;
+						}
+						_ => {}
 					}
 				}
-			}
-		});
+			});
+		}
 
 		task_manager.spawn_essential_handle().spawn("mining-task", authorship_task);
 	}

@@ -19,6 +19,7 @@ rand = { version = "0.8.4", features = ["std", "std_rng"] }
 sha3 = "0.9.1"
 codec = { version = "2.2.0", package = "parity-scale-codec" }
 futures = "0.3.16"
+tokio-stream = { version = "0.1.7", features = ['sync'] }
 
 sc-cli = { git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["wasmtime"] }
 sc-consensus-pow = { git = "https://github.com/paritytech/substrate.git", branch = "master" }

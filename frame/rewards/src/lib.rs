@@ -11,7 +11,7 @@ pub mod pallet {
 		ConsensusEngineId,
 	};
 	use frame_system::pallet_prelude::*;
-	use pallet_authorship::{self};
+	use pallet_authorship;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + balances::Config {

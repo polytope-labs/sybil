@@ -29,9 +29,11 @@ pub use frame_support::{
 	},
 	StorageValue,
 };
+use pallet_authorship::{EventHandler, FilterUncle, OnePerAuthorPerHeight, SealVerify};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
+use rewards;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
@@ -223,6 +225,17 @@ impl pallet_transaction_payment::Config for Runtime {
 	type FeeMultiplierUpdate = ();
 }
 
+parameter_types! {
+	pub const UncleGenerations: BlockNumber = 5;
+}
+
+impl pallet_authorship::Config for Runtime {
+	type FindAuthor = rewards::FindAuthorFromDigests<Self>;
+	type UncleGenerations = UncleGenerations;
+	type FilterUncle = ();
+	type EventHandler = (Rewards);
+}
+
 impl pallet_sudo::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
@@ -232,12 +245,10 @@ impl difficulty::Config for Runtime {
 	type Event = Event;
 }
 
-
 impl rewards::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 }
-
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -253,6 +264,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Difficulty: difficulty::{Pallet, Call, Storage, Event<T>, Config},
+		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
 		Rewards: rewards::{Pallet, Call, Storage, Event<T>, Config<T>}
 	}
 );

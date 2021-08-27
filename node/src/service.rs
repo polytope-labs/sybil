@@ -13,7 +13,6 @@ use sha3::Digest;
 use sp_consensus::CanAuthorWithNativeVersion;
 use sp_inherents::CreateInherentDataProviders;
 use sp_runtime::{traits::IdentifyAccount, MultiSigner};
-use std::sync::RwLock;
 use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
@@ -267,7 +266,6 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			Duration::from_secs(10),
 			can_author_with,
 		);
-		let found_seal = Arc::new(RwLock::new(false));
 
 		for _ in 0..4 {
 			let rx_clone = rx.clone();

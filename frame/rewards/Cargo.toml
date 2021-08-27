@@ -13,6 +13,7 @@ codec = { package = "parity-scale-codec", version = "2.0.0", default-features = 
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-system = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
 balances = { package = "pallet-balances", default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-authorship = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-consensus-pow = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }

@@ -2,13 +2,16 @@
 
 pub use pallet::*;
 
-
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{pallet_prelude::*, traits::Currency};
+	use frame_support::{
+		pallet_prelude::*,
+		sp_std,
+		traits::{Currency, FindAuthor},
+		ConsensusEngineId,
+	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::DigestItem;
-	use sp_consensus_pow::POW_ENGINE_ID;
+	use pallet_authorship::{self};
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + balances::Config {
@@ -36,20 +39,18 @@ pub mod pallet {
 		/// [AccountId]
 		AuthorRewarded(T::AccountId),
 		/// Block reward has just been updated
-		RewardUpdated(<T::Currency as Currency<T::AccountId>>::Balance)
+		RewardUpdated(<T::Currency as Currency<T::AccountId>>::Balance),
 	}
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub reward: <T::Currency as Currency<T::AccountId>>::Balance
+		pub reward: <T::Currency as Currency<T::AccountId>>::Balance,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			GenesisConfig {
-				reward: <T::Currency as Currency<T::AccountId>>::Balance::from(100u8)
-			}
+			GenesisConfig { reward: <T::Currency as Currency<T::AccountId>>::Balance::from(100u8) }
 		}
 	}
 
@@ -59,30 +60,35 @@ pub mod pallet {
 			Reward::<T>::put(self.reward)
 		}
 	}
+	pub struct FindAuthorFromDigests<T>(sp_std::marker::PhantomData<T>);
 
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
-			// get block author from pre-runtime digests
-			let account_id = frame_system::Pallet::<T>::digest()
-				.logs
-				.iter()
-				.find_map(|item| {
-					match item {
-						DigestItem::PreRuntime(POW_ENGINE_ID, author) => {
-							T::AccountId::decode(&mut &author[..]).ok()
-						},
-						_ => None,
-					}
-				})
-				.unwrap();
-			if let Some(reward) = Reward::<T>::get() {
-				T::Currency::deposit_creating(&account_id, reward);
-				Self::deposit_event(Event::AuthorRewarded(account_id));
-			}
-			0
+	impl<T: Config> FindAuthor<T::AccountId> for FindAuthorFromDigests<T> {
+		fn find_author<'a, I>(digests: I) -> Option<T::AccountId>
+		where
+			I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
+		{
+			digests.into_iter().find_map(|item| match item {
+				(_, author) => T::AccountId::decode(&mut &author[..]).ok(),
+			})
 		}
+	}
+
+	/// A type for representing the validator id in a session.
+	pub type ValidatorId<T> = <T as frame_system::Config>::AccountId;
+
+	/// Keep track of number of authored blocks per authority, uncles are counted as
+	/// well since they're a valid proof of being online.
+	impl<T: Config + pallet_authorship::Config>
+		pallet_authorship::EventHandler<ValidatorId<T>, T::BlockNumber> for Pallet<T>
+	{
+		fn note_author(author: ValidatorId<T>) {
+			if let Some(reward) = Reward::<T>::get() {
+				T::Currency::deposit_creating(&author, reward);
+				Self::deposit_event(Event::AuthorRewarded(author));
+			}
+		}
+
+		fn note_uncle(_author: ValidatorId<T>, _age: T::BlockNumber) {}
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -93,7 +99,10 @@ pub mod pallet {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn set_reward(origin: OriginFor<T>, reward: <T::Currency as Currency<T::AccountId>>::Balance) -> DispatchResult {
+		pub fn set_reward(
+			origin: OriginFor<T>,
+			reward: <T::Currency as Currency<T::AccountId>>::Balance,
+		) -> DispatchResult {
 			// only root origins allowed
 			ensure_root(origin)?;
 

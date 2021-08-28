@@ -4,5 +4,5 @@
 /data*
 /shell.nix
 .idea
-/.cargo/**/*
+.cargo
 node_modules

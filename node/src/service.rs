@@ -267,41 +267,38 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 				can_author_with,
 			);
 
-		
+		let worker = worker.clone();
 
-		for _ in 0..8 {
+		
+		thread::spawn(move || {
 			let worker = worker.clone();
-			thread::spawn(move || {
-				let worker = worker.clone();
-				let mut rand = rand::thread_rng();
-	
-				loop {
-					let mut nonce = sp_core::H256::default();
-					rand.fill_bytes(&mut nonce[..]);
-	
-					let mut worker = worker.lock();
-	
-					if let Some(metadata) = worker.metadata() {
-						let compute = sybil_pow::Compute {
-							pre_hash: metadata.pre_hash,
-							difficulty: metadata.difficulty,
-							nonce,
-						};
-	
-						let work = sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
-	
-						let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
-	
-						if !overflowed {
-							let seal = sybil_pow::SybilSeal { nonce, difficulty: metadata.difficulty };
-	
-							futures::executor::block_on(worker.submit(seal.encode()));
-						}
+			let mut rand = rand::thread_rng();
+
+			loop {
+				let mut nonce = sp_core::H256::default();
+				rand.fill_bytes(&mut nonce[..]);
+
+				let mut worker = worker.lock();
+
+				if let Some(metadata) = worker.metadata() {
+					let compute = sybil_pow::Compute {
+						pre_hash: metadata.pre_hash,
+						difficulty: metadata.difficulty,
+						nonce,
+					};
+
+					let work = sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
+
+					let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
+
+					if !overflowed {
+						let seal = sybil_pow::SybilSeal { nonce, difficulty: metadata.difficulty };
+
+						futures::executor::block_on(worker.submit(seal.encode()));
 					}
 				}
-			});
-		}
-
+			}
+		});
 
 		task_manager.spawn_essential_handle().spawn("mining-task", authorship_task);
 	}

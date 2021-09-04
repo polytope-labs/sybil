@@ -157,7 +157,7 @@ fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -249,56 +249,63 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			.into_account()
 			.encode();
 
-			let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
-				Box::new(pow_block_import),
-				client.clone(),
-				select_chain,
-				sybil_pow::SybilPow::new(client.clone()),
-				proposer_factory,
-				network.clone(),
-				network.clone(),
-				Some(address),
-				move |_, ()| async move {
-					let provider = sp_timestamp::InherentDataProvider::from_system_time();
-					Ok(provider)
-				},
-				Duration::from_secs(10),
-				Duration::from_secs(10),
-				can_author_with,
-			);
+		let (worker, authorship_task) = sc_consensus_pow::start_mining_worker(
+			Box::new(pow_block_import),
+			client.clone(),
+			select_chain,
+			sybil_pow::SybilPow::new(client.clone()),
+			proposer_factory,
+			network.clone(),
+			network.clone(),
+			Some(address),
+			move |_, ()| async move {
+				let provider = sp_timestamp::InherentDataProvider::from_system_time();
+				Ok(provider)
+			},
+			Duration::from_secs(10),
+			Duration::from_secs(10),
+			can_author_with,
+		);
 
 		let worker = worker.clone();
-
 		
-		thread::spawn(move || {
+		for _ in 0..threads {
 			let worker = worker.clone();
-			let mut rand = rand::thread_rng();
 
-			loop {
-				let mut nonce = sp_core::H256::default();
-				rand.fill_bytes(&mut nonce[..]);
+			thread::spawn(move || loop {
+				let mut rand = rand::thread_rng();
+				if let Some(metadata) = worker.lock().metadata() {
+					// enter a secondary loop
+					for _ in 0..1000 {
+						let mut nonce = sp_core::H256::default();
+						rand.fill_bytes(&mut nonce[..]);
+						let compute = sybil_pow::Compute {
+							pre_hash: metadata.pre_hash.clone(),
+							difficulty: metadata.difficulty.clone(),
+							nonce,
+						};
 
-				let mut worker = worker.lock();
+						let work =
+							sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
 
-				if let Some(metadata) = worker.metadata() {
-					let compute = sybil_pow::Compute {
-						pre_hash: metadata.pre_hash,
-						difficulty: metadata.difficulty,
-						nonce,
-					};
+						let difficulty = metadata.difficulty.clone();
+						let (_, overflowed) = work.overflowing_mul(difficulty);
 
-					let work = sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
+						if !overflowed {
+							let mut worker = worker.lock();
+							if worker.metadata() == Some(metadata.clone()) {
+								let seal = sybil_pow::SybilSeal { nonce, difficulty };
 
-					let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
-
-					if !overflowed {
-						let seal = sybil_pow::SybilSeal { nonce, difficulty: metadata.difficulty };
-
-						futures::executor::block_on(worker.submit(seal.encode()));
+								futures::executor::block_on(worker.submit(seal.encode()));
+							}
+						}
 					}
+				} else {
+					thread::sleep(Duration::new(1, 0));
 				}
-			}
-		});
+				std::hint::spin_loop()
+			});
+		}
 
 		task_manager.spawn_essential_handle().spawn("mining-task", authorship_task);
 	}

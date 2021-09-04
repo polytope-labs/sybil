@@ -8,6 +8,8 @@ pub struct Cli {
 
 	#[structopt(flatten)]
 	pub run: RunCmd,
+	#[structopt(long)]
+	pub threads: Option<usize>,
 }
 
 #[derive(Debug, StructOpt)]

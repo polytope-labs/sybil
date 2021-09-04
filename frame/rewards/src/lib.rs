@@ -6,7 +6,6 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::{pallet_prelude::*, traits::Currency};
-	use frame_system::pallet_prelude::*;
 	use sp_runtime::DigestItem;
 	use sp_consensus_pow::POW_ENGINE_ID;
 

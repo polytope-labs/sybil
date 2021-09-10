@@ -16,7 +16,6 @@ use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
-use sp_runtime::{MultiSigner, traits::IdentifyAccount};
 
 pub type Executor = sc_executor::NativeElseWasmExecutor<ExecutorDispatch>;
 pub struct ExecutorDispatch;
@@ -275,9 +274,13 @@ pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, Se
 
 			thread::spawn(move || loop {
 				let mut rand = rand::thread_rng();
-				if let Some(metadata) = worker.lock().metadata() {
+				if let Some(metadata) = worker.metadata() {
+					let version = worker.version();
 					// enter a secondary loop
 					for _ in 0..1000 {
+						if version != worker.version() {
+							break
+						}
 						let mut nonce = sp_core::H256::default();
 						rand.fill_bytes(&mut nonce[..]);
 						let compute = sybil_pow::Compute {
@@ -293,12 +296,9 @@ pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, Se
 						let (_, overflowed) = work.overflowing_mul(difficulty);
 
 						if !overflowed {
-							let mut worker = worker.lock();
-							if worker.metadata() == Some(metadata.clone()) {
-								let seal = sybil_pow::SybilSeal { nonce, difficulty };
+							let seal = sybil_pow::SybilSeal { nonce, difficulty };
 
-								futures::executor::block_on(worker.submit(seal.encode()));
-							}
+							futures::executor::block_on(worker.submit(seal.encode()));
 						}
 					}
 				} else {

@@ -1,0 +1,9 @@
+/**/target
+**/*.rs.bk
+/keys
+/data*
+/shell.nix
+.idea
+.cargo
+node_modules
+blocktime

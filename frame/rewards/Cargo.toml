@@ -1,0 +1,33 @@
+[package]
+name = "frame-rewards"
+version = "0.1.0"
+edition = "2018"
+authors = ["Polytope Labs"]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-system = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
+balances = { package = "pallet-balances", default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-consensus-pow = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-authorship = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"balances/std",
+	"sp-runtime/std",
+	"sp-consensus-pow/std",
+	"sp-core/std"
+]
+
+try-runtime = ["frame-support/try-runtime"]

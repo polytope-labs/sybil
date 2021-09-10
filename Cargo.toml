@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "node",
+    "runtime",
+    "pow",
+    "frame/difficulty",
+	"frame/rewards"
+]

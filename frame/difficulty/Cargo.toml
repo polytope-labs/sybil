@@ -1,0 +1,36 @@
+[package]
+edition = "2018"
+name = "frame-difficulty"
+authors = ["Polytope Labs"]
+version = "3.0.0"
+license = "Unlicense"
+readme = "README.md"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-system = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+
+frame-benchmarking = { default-features = false,  git = "https://github.com/paritytech/substrate", branch = "master", optional = true }
+
+[dev-dependencies]
+serde = { version = "1.0.126" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"frame-benchmarking/std",
+	"sp-core/std"
+]
+
+runtime-benchmarks = ["frame-benchmarking"]
+try-runtime = ["frame-support/try-runtime"]

@@ -267,16 +267,20 @@ pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, Se
 			can_author_with,
 		);
 
-		let worker = worker.clone();
 		
 		for _ in 0..threads {
 			let worker = worker.clone();
 
 			thread::spawn(move || loop {
 				let mut rand = rand::thread_rng();
-				if let Some(metadata) = worker.lock().metadata() {
+				if let Some(metadata) = worker.metadata() {
+					let version = worker.version();
 					// enter a secondary loop
 					for _ in 0..1000 {
+
+						if version != worker.version(){
+							break;
+						}
 						let mut nonce = sp_core::H256::default();
 						rand.fill_bytes(&mut nonce[..]);
 						let compute = sybil_pow::Compute {
@@ -292,12 +296,12 @@ pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, Se
 						let (_, overflowed) = work.overflowing_mul(difficulty);
 
 						if !overflowed {
-							let mut worker = worker.lock();
-							if worker.metadata() == Some(metadata.clone()) {
+							
+							
 								let seal = sybil_pow::SybilSeal { nonce, difficulty };
 
 								futures::executor::block_on(worker.submit(seal.encode()));
-							}
+							
 						}
 					}
 				} else {

@@ -194,6 +194,33 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
+	pub const NickReservationFee: u128 = 100;
+	pub const MinNickLength: u32 = 8;
+	pub const MaxNickLength: u32 = 32;
+}
+
+impl pallet_nicks::Config for Runtime {
+	type Currency = Balances;
+
+
+	type ReservationFee = NickReservationFee;
+
+	type Slashed = ();
+
+
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+
+	
+	type MinLength = MinNickLength;
+
+
+	type MaxLength = MaxNickLength;
+
+
+	type Event = Event;
+}
+
+parameter_types! {
 	pub const ExistentialDeposit: u128 = 500;
 	pub const MaxLocks: u32 = 50;
 }
@@ -256,7 +283,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Difficulty: difficulty::{Pallet, Call, Storage, Event<T>, Config},
-		Rewards: rewards::{Pallet, Event<T>}
+		Rewards: rewards::{Pallet, Event<T>},
+		Nicks: pallet_nicks::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -438,3 +466,8 @@ impl_runtime_apis! {
 		}
 	}
 }
+
+
+
+
+

@@ -16,6 +16,7 @@ pallet-randomness-collective-flip = { git = "https://github.com/paritytech/subst
 pallet-sudo = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+pallet-nicks = {git = 'https://github.com/paritytech/substrate.git',  branch = "master", default-features = false}
 
 frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
@@ -74,6 +75,7 @@ std = [
 	"sp-std/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
+	'pallet-nicks/std',
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

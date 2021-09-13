@@ -267,20 +267,22 @@ pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, Se
 			can_author_with,
 		);
 
-		let worker = worker.clone();
-		
 		for _ in 0..threads {
 			let worker = worker.clone();
 
-			thread::spawn(move || loop {
-				let mut rand = rand::thread_rng();
-				if let Some(metadata) = worker.metadata() {
-					let version = worker.version();
-					// enter a secondary loop
-					for _ in 0..1000 {
-						if version != worker.version() {
-							break
-						}
+			thread::spawn(move || {
+				let mut version = worker.version();
+				let mut metadata = worker.metadata();
+
+				loop {
+					if version != worker.version() {
+						version = worker.version();
+
+						metadata = worker.metadata();
+					}
+					if let Some(ref metadata) = metadata {
+						let mut rand = rand::thread_rng();
+
 						let mut nonce = sp_core::H256::default();
 						rand.fill_bytes(&mut nonce[..]);
 						let compute = sybil_pow::Compute {
@@ -300,11 +302,11 @@ pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, Se
 
 							futures::executor::block_on(worker.submit(seal.encode()));
 						}
+					} else {
+						thread::sleep(Duration::new(1, 0));
 					}
-				} else {
-					thread::sleep(Duration::new(1, 0));
+					std::hint::spin_loop()
 				}
-				std::hint::spin_loop()
 			});
 		}
 

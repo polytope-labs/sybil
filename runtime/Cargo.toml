@@ -11,11 +11,15 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 
+
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+pallet-treasury = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+pallet-authorship = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+
 
 frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
@@ -63,6 +67,8 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-treasury/std",
+	"pallet-authorship/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-pow/std",

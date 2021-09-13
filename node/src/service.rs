@@ -5,26 +5,32 @@ use rand::RngCore;
 use sc_client_api::ExecutorProvider;
 use sc_consensus::LongestChain;
 use sc_consensus_pow::PowBlockImport;
-use sc_executor::native_executor_instance;
-pub use sc_executor::NativeExecutor;
+use sc_executor::NativeElseWasmExecutor;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TFullCallExecutor, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sha3::Digest;
 use sp_consensus::CanAuthorWithNativeVersion;
 use sp_inherents::CreateInherentDataProviders;
+use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use std::thread;
 use std::{sync::Arc, time::Duration};
 use sybil_runtime::{self, opaque::Block, RuntimeApi};
-use sp_runtime::{MultiSigner, traits::IdentifyAccount};
 
-// Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	sybil_runtime::api::dispatch,
-	sybil_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+pub type Executor = sc_executor::NativeElseWasmExecutor<ExecutorDispatch>;
+pub struct ExecutorDispatch;
+
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		sybil_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		sybil_runtime::native_version()
+	}
+}
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
@@ -72,10 +78,17 @@ pub fn new_partial(
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 	let client = Arc::new(client);
 
@@ -144,7 +157,7 @@ fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(config: Configuration, threads: usize) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -254,36 +267,48 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			can_author_with,
 		);
 
-		let worker = worker.clone();
-		thread::spawn(move || {
+		for _ in 0..threads {
 			let worker = worker.clone();
-			let mut rand = rand::thread_rng();
 
-			loop {
-				let mut nonce = sp_core::H256::default();
-				rand.fill_bytes(&mut nonce[..]);
+			thread::spawn(move || {
+				let mut version = worker.version();
+				let mut metadata = worker.metadata();
 
-				let mut worker = worker.lock();
+				loop {
+					if version != worker.version() {
+						version = worker.version();
 
-				if let Some(metadata) = worker.metadata() {
-					let compute = sybil_pow::Compute {
-						pre_hash: metadata.pre_hash,
-						difficulty: metadata.difficulty,
-						nonce,
-					};
-
-					let work = sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
-
-					let (_, overflowed) = work.overflowing_mul(metadata.difficulty);
-
-					if !overflowed {
-						let seal = sybil_pow::SybilSeal { nonce, difficulty: metadata.difficulty };
-
-						futures::executor::block_on(worker.submit(seal.encode()));
+						metadata = worker.metadata();
 					}
+					if let Some(ref metadata) = metadata {
+						let mut rand = rand::thread_rng();
+
+						let mut nonce = sp_core::H256::default();
+						rand.fill_bytes(&mut nonce[..]);
+						let compute = sybil_pow::Compute {
+							pre_hash: metadata.pre_hash.clone(),
+							difficulty: metadata.difficulty.clone(),
+							nonce,
+						};
+
+						let work =
+							sp_core::U256::from(&*sha3::Sha3_256::digest(&compute.encode()[..]));
+
+						let difficulty = metadata.difficulty.clone();
+						let (_, overflowed) = work.overflowing_mul(difficulty);
+
+						if !overflowed {
+							let seal = sybil_pow::SybilSeal { nonce, difficulty };
+
+							futures::executor::block_on(worker.submit(seal.encode()));
+						}
+					} else {
+						thread::sleep(Duration::new(1, 0));
+					}
+					std::hint::spin_loop()
 				}
-			}
-		});
+			});
+		}
 
 		task_manager.spawn_essential_handle().spawn("mining-task", authorship_task);
 	}

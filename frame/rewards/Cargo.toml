@@ -16,6 +16,7 @@ balances = { package = "pallet-balances", default-features = false,  git = "http
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-consensus-pow = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-authorship = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 
 [features]
 default = ["std"]
@@ -24,6 +25,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"balances/std",
+	"pallet-authorship/std",
 	"sp-runtime/std",
 	"sp-consensus-pow/std",
 	"sp-core/std"

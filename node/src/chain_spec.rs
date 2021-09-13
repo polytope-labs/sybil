@@ -1,7 +1,4 @@
-use sybil_runtime::{
-	AccountId, BalancesConfig, GenesisConfig, Signature, SudoConfig, DifficultyConfig, RewardsConfig,
-	SystemConfig, WASM_BINARY,
-};
+use sybil_runtime::{AccountId, BalancesConfig, DifficultyConfig, GenesisConfig, RewardsConfig, Signature, SudoConfig, SystemConfig, TreasuryConfig, WASM_BINARY};
 use sc_service::ChainType;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
@@ -128,11 +125,12 @@ fn testnet_genesis(
 			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
 		},
 		difficulty: DifficultyConfig {
-			difficulty: 1_000_000.into()
+			difficulty: 100_000.into()
 		},
 		rewards: RewardsConfig {
 			reward: 100u128
 		},
+		treasury: TreasuryConfig {},
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,

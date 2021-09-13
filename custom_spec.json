@@ -72,8 +72,12 @@
         "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
       },
       "difficulty": {
-        "difficulty": "0x000f4240"
-      }
+        "difficulty": "0x3b9aca00"
+      },
+      "rewards": {
+        "reward": 100
+      },
+      "treasury": null
     }
   }
 }

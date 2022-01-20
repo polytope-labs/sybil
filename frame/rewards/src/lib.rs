@@ -2,6 +2,13 @@
 
 pub use pallet::*;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+#[cfg(test)]
+mod test;
+mod weight;
+pub use weight::SybilWeight;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::{
@@ -11,6 +18,8 @@ pub mod pallet {
 		ConsensusEngineId,
 	};
 	use frame_system::pallet_prelude::*;
+	use crate::weight::WeightInfo;
+
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + balances::Config {
@@ -18,6 +27,8 @@ pub mod pallet {
 
 		/// concrete currency implementataion
 		type Currency: Currency<Self::AccountId>;
+
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::storage]
@@ -31,7 +42,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::event]
-	#[pallet::metadata(T::AccountId = "AccountId")]
+	//#[pallet::metadata(T::AccountId = "AccountId")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A block author  has just been rewarded.
@@ -98,7 +109,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(<T as Config>::WeightInfo::set_reward())]
 		pub fn set_reward(
 			origin: OriginFor<T>,
 			reward: <T::Currency as Currency<T::AccountId>>::Balance,
